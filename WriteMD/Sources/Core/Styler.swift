@@ -62,8 +62,10 @@ enum Styler {
         return max(26, ceil(w) + 8)
     }
 
-    /// Width of a manually typed list prefix ("12.  ", "- ") at the start of a paragraph, or 0.
-    static func manualPrefixWidth(_ ns: NSString, _ pr: NSRange) -> CGFloat {
+    /// Hanging position for a manually typed list prefix at the start of a paragraph ("12.  text", "- text",
+    /// "1.<tab>text"), or nil. Spaces: wrapped lines align with the text after the spaces. Tab: they align
+    /// with the tab stop, exactly like real list items.
+    static func manualPrefix(_ ns: NSString, _ pr: NSRange) -> (hang: CGFloat, tab: Bool)? {
         var i = pr.location
         let end = pr.location + pr.length
         func ch(_ k: Int) -> unichar { ns.character(at: k) }
@@ -71,14 +73,17 @@ enum Styler {
         else {
             let d = i
             while i < end, ch(i) >= 48, ch(i) <= 57 { i += 1 }
-            guard i > d, i - d <= 9, i < end, ch(i) == 46 || ch(i) == 41 else { return 0 }
+            guard i > d, i - d <= 9, i < end, ch(i) == 46 || ch(i) == 41 else { return nil }
             i += 1
         }
         let m = i
+        guard i < end else { return nil }
+        let markerText = ns.substring(with: NSRange(location: pr.location, length: m - pr.location))
+        if ch(i) == 9 { return (hang(forPrefix: markerText), true) }
         while i < end, ch(i) == 32 { i += 1 }
-        guard i > m, i < end else { return 0 }
+        guard i > m, i < end else { return nil }
         let w = ns.substring(with: NSRange(location: pr.location, length: i - pr.location))
-        return ceil((w as NSString).size(withAttributes: [.font: font(kind: .paragraph, flags: [])]).width)
+        return (ceil((w as NSString).size(withAttributes: [.font: font(kind: .paragraph, flags: [])]).width), false)
     }
 
     /// Bullets are drawn larger and heavier than body text (visual only; the source marker is untouched).
@@ -91,8 +96,8 @@ enum Styler {
     }
 
     /// `continuing`: previous paragraph belongs to the same visual block (tight spacing).
-    static func paragraphStyle(for block: Block, continuing: Bool, hang: CGFloat) -> NSParagraphStyle {
-        let key = "\(block.kind)|\(continuing)|\(hang)|\(block.kind == .listItem ? block.indent : "")"
+    static func paragraphStyle(for block: Block, continuing: Bool, hang: CGFloat, tab: Bool = false) -> NSParagraphStyle {
+        let key = "\(block.kind)|\(continuing)|\(hang)|\(tab)|\(block.kind == .listItem ? block.indent : "")"
         if let s = styleCache[key] { return s }
         let p = NSMutableParagraphStyle()
         p.defaultTabInterval = 28
@@ -101,7 +106,10 @@ enum Styler {
         switch block.kind {
         case .paragraph:
             // Visual only: a typed "1. " / "- " prefix makes wrapped lines align with the text.
-            if hang > 0 { p.headIndent = hang }
+            if hang > 0 {
+                p.headIndent = hang
+                if tab { p.tabStops = [NSTextTab(textAlignment: .left, location: hang, options: [:])] }
+            }
         case .heading(let n):
             p.paragraphSpacingBefore = n <= 2 ? 22 : 16
             p.lineHeightMultiple = 1.1
@@ -182,9 +190,13 @@ enum Styler {
                 if t.location != NSNotFound { prefix = ns.substring(with: NSRange(location: pr.location, length: t.location - pr.location)) }
             }
             storage.addAttribute(.wmdBlock, value: block, range: pr)
-            let h = block.kind == .paragraph ? manualPrefixWidth(ns, pr) : hang(forPrefix: prefix)
+            var h = hang(forPrefix: prefix), tab = false
+            if block.kind == .paragraph {
+                let m = manualPrefix(ns, pr)
+                h = m?.hang ?? 0; tab = m?.tab ?? false
+            }
             storage.addAttribute(.paragraphStyle,
-                                 value: paragraphStyle(for: block, continuing: continuing, hang: h),
+                                 value: paragraphStyle(for: block, continuing: continuing, hang: h, tab: tab),
                                  range: pr)
             let kind = block.kind
             storage.enumerateAttribute(.wmdFlags, in: pr, options: []) { v, run, _ in

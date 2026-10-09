@@ -399,3 +399,29 @@ final class ManualHangingIndentTests: XCTestCase {
         XCTAssertEqual(last.headIndent, 0)
     }
 }
+
+final class PasteTests: XCTestCase {
+    func testMultiLinePasteAtEnd() {
+        let (m, tv) = makeEditor("alpha\n\nsecond\n")
+        tv.caret(tv.string.count)
+        tv.insertPlain("line one\n\nline two\n")
+        XCTAssertEqual(tv.string, "alpha\nsecondline one\n\nline two\n")
+        XCTAssertTrue(m.markdown().contains("line two"))
+    }
+}
+
+final class TabHangTests: XCTestCase {
+    func testTypedMarkerTabTextHangsAtTabStop() {
+        let (m, tv) = makeEditor("")
+        tv.type("1.")
+        tv.insertTab(nil)
+        tv.type(String(repeating: "wrapped words here ", count: 12))
+        let st = tv.textStorage!
+        let style = st.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as! NSParagraphStyle
+        XCTAssertEqual(style.firstLineHeadIndent, 0)
+        XCTAssertGreaterThanOrEqual(style.headIndent, 26)
+        XCTAssertEqual(style.tabStops.first?.location, style.headIndent)
+        XCTAssertEqual(tv.block(atParagraphStartOf: 0)?.kind, .paragraph)
+        XCTAssertTrue(m.markdown().hasPrefix("1.\twrapped"))
+    }
+}
