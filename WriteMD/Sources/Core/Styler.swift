@@ -81,6 +81,9 @@ enum Styler {
         return ceil((w as NSString).size(withAttributes: [.font: font(kind: .paragraph, flags: [])]).width)
     }
 
+    /// Bullets are drawn larger and heavier than body text (visual only; the source marker is untouched).
+    static let bulletFont = NSFont.systemFont(ofSize: 20, weight: .heavy)
+
     static func indentWidth(_ indent: String) -> CGFloat {
         var cols = 0
         for ch in indent { cols += ch == "\t" ? 4 : 1 }
@@ -110,6 +113,9 @@ enum Styler {
             p.headIndent = first + hang
             p.tabStops = [NSTextTab(textAlignment: .left, location: first + hang, options: [:])]
             if continuing { p.paragraphSpacingBefore = 3 }
+            // The enlarged bullet must not make its line taller than body text.
+            let body = font(kind: .paragraph, flags: [])
+            p.maximumLineHeight = ceil((body.ascender - body.descender + body.leading) * p.lineHeightMultiple)
         case .code, .verbatim:
             p.firstLineHeadIndent = 12; p.headIndent = 12; p.tailIndent = -12
             p.lineHeightMultiple = 1.15
@@ -192,6 +198,10 @@ enum Styler {
                     storage.removeAttribute(.backgroundColor, range: run)
                 }
                 if v == nil { storage.addAttribute(.wmdFlags, value: flags.number, range: run) }
+            }
+            if kind == .listItem, prefix == bullet {
+                storage.addAttributes([.font: bulletFont, .baselineOffset: -1.5],
+                                      range: NSRange(location: pr.location, length: 1))
             }
         }
     }
