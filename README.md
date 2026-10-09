@@ -29,6 +29,9 @@ background processes, no dependencies. Sandboxed, without the network entitlemen
 | Quote / Bullets / Numbers / Code block | ⌥⌘Q / ⌥⌘U / ⌥⌘O / ⌥⌘C |
 | Horizontal rule | ⌥⌘- |
 
+**View → Show Source** (⌥⌘S) opens an optional read-only side pane with the exact Markdown that would be
+saved. It is refreshed (debounced) only while visible, and the choice is remembered.
+
 Files: `.md`, `.markdown` (and `.Rmd`, `.qmd`; nothing is ever executed). UTF-8 only. Saving is always
 explicit (no autosave-in-place).
 

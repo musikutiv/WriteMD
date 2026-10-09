@@ -1,7 +1,13 @@
 import AppKit
 
-final class DocumentWindowController: NSWindowController, NSToolbarDelegate, NSTextViewDelegate {
+final class DocumentWindowController: NSWindowController, NSToolbarDelegate, NSTextViewDelegate, NSMenuItemValidation {
     let textView: EditorTextView
+    private let model: EditorModel
+    private let split = NSSplitView()
+    private let sourceScroll = NSScrollView()
+    private let sourceView = NSTextView()
+    private var sourceTimer: Timer?
+    private static let showSourceKey = "showSource"
     private let stylePopup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 130, height: 24), pullsDown: false)
 
     private enum Item {
@@ -22,6 +28,7 @@ final class DocumentWindowController: NSWindowController, NSToolbarDelegate, NST
     }
 
     init(model: EditorModel) {
+        self.model = model
         textView = EditorTextView(storage: model.storage)
         let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 860, height: 720))
         scroll.hasVerticalScroller = true
@@ -33,7 +40,11 @@ final class DocumentWindowController: NSWindowController, NSToolbarDelegate, NST
         let window = NSWindow(contentRect: scroll.frame,
                               styleMask: [.titled, .closable, .miniaturizable, .resizable],
                               backing: .buffered, defer: true)
-        window.contentView = scroll
+        split.isVertical = true
+        split.dividerStyle = .thin
+        split.addArrangedSubview(scroll)
+        split.addArrangedSubview(sourceScroll)
+        window.contentView = split
         window.minSize = NSSize(width: 420, height: 300)
         window.isReleasedWhenClosed = false
         window.toolbarStyle = .unifiedCompact
@@ -59,6 +70,71 @@ final class DocumentWindowController: NSWindowController, NSToolbarDelegate, NST
         NotificationCenter.default.addObserver(self, selector: #selector(selectionChanged),
                                                name: NSTextView.didChangeSelectionNotification, object: textView)
         window.makeFirstResponder(textView)
+
+        sourceView.isEditable = false
+        sourceView.isSelectable = true
+        sourceView.isRichText = false
+        sourceView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        sourceView.textColor = .labelColor
+        sourceView.drawsBackground = true
+        sourceView.backgroundColor = Styler.codeBackground
+        sourceView.textContainerInset = NSSize(width: 12, height: 16)
+        sourceView.autoresizingMask = [.width]
+        sourceView.isVerticallyResizable = true
+        sourceView.textContainer?.widthTracksTextView = true
+        sourceScroll.documentView = sourceView
+        sourceScroll.hasVerticalScroller = true
+        sourceScroll.autohidesScrollers = true
+        sourceScroll.setFrameSize(NSSize(width: 380, height: 100))
+        sourceScroll.isHidden = true
+        NotificationCenter.default.addObserver(self, selector: #selector(contentChanged),
+                                               name: NSTextStorage.didProcessEditingNotification, object: model.storage)
+        if UserDefaults.standard.bool(forKey: Self.showSourceKey) { setSourceVisible(true) }
+    }
+
+    // MARK: Raw Markdown side view (read-only, only does work while visible)
+
+    private var sourceVisible: Bool { !sourceScroll.isHidden }
+
+    @objc func toggleSourceView(_ sender: Any?) {
+        setSourceVisible(!sourceVisible)
+        UserDefaults.standard.set(sourceVisible, forKey: Self.showSourceKey)
+    }
+
+    private func setSourceVisible(_ show: Bool) {
+        sourceScroll.isHidden = !show
+        if show {
+            if let w = window, w.frame.width < 1000, !w.styleMask.contains(.fullScreen) {
+                var f = w.frame; f.size.width = min(f.width + 380, w.screen?.visibleFrame.width ?? 1400); w.setFrame(f, display: true)
+            }
+            split.setPosition(split.bounds.width - 380, ofDividerAt: 0)
+            refreshSource()
+        } else {
+            sourceTimer?.invalidate(); sourceTimer = nil
+        }
+    }
+
+    @objc private func contentChanged(_ note: Notification) {
+        guard sourceVisible, sourceTimer == nil else { return }
+        sourceTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+            self?.sourceTimer = nil
+            self?.refreshSource()
+        }
+    }
+
+    private func refreshSource() {
+        guard sourceVisible else { return }
+        let origin = sourceScroll.contentView.bounds.origin
+        sourceView.string = model.markdown()
+        sourceScroll.contentView.scroll(to: origin)
+        sourceScroll.reflectScrolledClipView(sourceScroll.contentView)
+    }
+
+    func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        if item.action == #selector(toggleSourceView(_:)) {
+            item.title = sourceVisible ? "Hide Source" : "Show Source"
+        }
+        return true
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }

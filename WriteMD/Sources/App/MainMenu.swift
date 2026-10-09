@@ -118,6 +118,7 @@ enum MainMenu {
 
     private static func viewMenu() -> NSMenu {
         let m = NSMenu(title: "View")
+        add(m, "Show Source", #selector(DocumentWindowController.toggleSourceView(_:)), "s", [.command, .option])
         add(m, "Hide Toolbar", #selector(NSWindow.toggleToolbarShown(_:)), "t", [.command, .option])
         add(m, "Enter Full Screen", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control])
         return m
