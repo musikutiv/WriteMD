@@ -95,8 +95,9 @@ extension EditorTextView {
 
     @objc func wmdSetParagraph(_ sender: Any?) { applyBlock(.paragraph) }
     @objc func wmdSetHeading(_ sender: Any?) {
+        let isPopup = sender is NSPopUpButton
         let tag = (sender as? NSMenuItem)?.tag ?? (sender as? NSPopUpButton)?.selectedItem?.tag ?? 1
-        applyBlock(tag == 0 ? .paragraph : .heading(tag))
+        applyBlock(tag == 0 ? .paragraph : .heading(tag), toggle: !isPopup)
     }
     @objc func wmdToggleQuote(_ sender: Any?) { applyBlock(.quote) }
     @objc func wmdToggleBullets(_ sender: Any?) { applyBlock(.bullet) }
@@ -158,7 +159,7 @@ extension EditorTextView {
         }
     }
 
-    func applyBlock(_ requested: BlockTarget) {
+    func applyBlock(_ requested: BlockTarget, toggle: Bool = true) {
         guard let st = textStorage, isEditable else { return }
         let paras = selectedParagraphs()
         guard let first = paras.first, let lastP = paras.last else { return }
@@ -175,7 +176,7 @@ extension EditorTextView {
             let prefix = (b.kind == .listItem ? (ce - s) - bd.length : 0)
             items.append(Item(block: b, body: bd, terminated: e > ce, oldPrefix: prefix, start: s))
         }
-        let target: BlockTarget = items.allSatisfy({ matches($0.block, requested) }) && requested != .paragraph ? .paragraph : requested
+        let target: BlockTarget = toggle && requested != .paragraph && items.allSatisfy({ matches($0.block, requested) }) ? .paragraph : requested
 
         let out = NSMutableAttributedString()
         var newStarts: [Int] = []

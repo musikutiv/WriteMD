@@ -146,7 +146,7 @@ enum Styler {
             var block = storage.attribute(.wmdBlock, at: pr.location, effectiveRange: nil) as? Block ?? Block(.paragraph)
             // Non-group blocks map to exactly one paragraph: inherited attributes (Return, paste) get a fresh Block.
             if !block.kind.isGroup, let pb = prevBlock, pb === block { block = block.sibling() }
-            let continuing = prevBlock.map { $0 === block || ($0.kind == .listItem && block.kind == .listItem) } ?? false
+            let continuing = prevBlock.map { $0 === block || ($0.kind == .listItem && block.kind == .listItem && $0.ordered == block.ordered) } ?? false
             prevBlock = block
 
             var prefix = ""

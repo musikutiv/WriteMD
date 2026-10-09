@@ -53,8 +53,12 @@ final class EditorTextView: NSTextView {
 
     // MARK: Layout
 
+    /// Centre a readable column in wide windows. Off when printing.
+    var centersContent = true
+
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
+        guard centersContent else { return }
         let w = max(24, (newSize.width - EditorTextView.maxContentWidth) / 2)
         if abs(textContainerInset.width - w) > 0.5 { textContainerInset = NSSize(width: w, height: 32) }
     }
@@ -227,8 +231,11 @@ final class EditorTextView: NSTextView {
             let g = lm.glyphRange(forCharacterRange: full, actualCharacterRange: nil)
             lm.enumerateLineFragments(forGlyphRange: g) { r, _, _, _, _ in rectUnion = rectUnion.union(r) }
             guard !rectUnion.isNull else { return }
-            var area = NSRect(x: origin.x + tc.lineFragmentPadding, y: origin.y + rectUnion.minY,
-                              width: width, height: rectUnion.height)
+            // The first line fragment includes the paragraph's "space before"; the decoration should not.
+            let before = full.location == 0 ? 0 : (st.attribute(.paragraphStyle, at: full.location, effectiveRange: nil) as? NSParagraphStyle)?
+                .paragraphSpacingBefore ?? 0
+            var area = NSRect(x: origin.x + tc.lineFragmentPadding, y: origin.y + rectUnion.minY + before,
+                              width: width, height: max(2, rectUnion.height - before))
             switch block.kind {
             case .code, .verbatim:
                 area = area.insetBy(dx: 0, dy: -4)
