@@ -1,0 +1,110 @@
+name: WriteMD
+options:
+  bundleIdPrefix: com.musikutiv
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    SWIFT_VERSION: "5.0"
+    GENERATE_INFOPLIST_FILE: NO
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  WriteMD:
+    type: application
+    platform: macOS
+    sources:
+      - path: WriteMD/Sources
+    info:
+      path: WriteMD/Info.plist
+      properties:
+        LSApplicationCategoryType: public.app-category.productivity
+        NSHumanReadableCopyright: "Copyright © 2026 musikutiv."
+        NSPrincipalClass: NSApplication
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Markdown Document
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            NSDocumentClass: $(PRODUCT_MODULE_NAME).WriteMDDocument
+            LSItemContentTypes:
+              - net.daringfireball.markdown
+          - CFBundleTypeName: R Markdown Document
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            NSDocumentClass: $(PRODUCT_MODULE_NAME).WriteMDDocument
+            LSItemContentTypes:
+              - com.musikutiv.lookmd.rmarkdown
+          - CFBundleTypeName: Quarto Document
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            NSDocumentClass: $(PRODUCT_MODULE_NAME).WriteMDDocument
+            LSItemContentTypes:
+              - com.musikutiv.lookmd.qmd
+        # Same identifiers LookMD uses, so both apps agree on the types.
+        # Declared as *imported*: WriteMD does not need LookMD installed.
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: net.daringfireball.markdown
+            UTTypeConformsTo:
+              - public.plain-text
+            UTTypeDescription: Markdown Document
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - md
+                - markdown
+                - mdown
+                - mkdn
+                - mkd
+          - UTTypeIdentifier: com.musikutiv.lookmd.rmarkdown
+            UTTypeConformsTo:
+              - public.plain-text
+            UTTypeDescription: R Markdown Document
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - Rmd
+          - UTTypeIdentifier: com.musikutiv.lookmd.qmd
+            UTTypeConformsTo:
+              - public.plain-text
+            UTTypeDescription: Quarto Document
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - qmd
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.musikutiv.writemd
+        PRODUCT_NAME: WriteMD
+        ENABLE_HARDENED_RUNTIME: NO
+        COMBINE_HIDPI_IMAGES: YES
+        CODE_SIGN_ENTITLEMENTS: WriteMD/WriteMD.entitlements
+
+  WriteMDTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+      - path: WriteMD/Sources/Core
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.musikutiv.writemd.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  WriteMD:
+    build:
+      targets:
+        WriteMD: all
+        WriteMDTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - WriteMDTests
