@@ -291,6 +291,10 @@ extension EditorTextView {
     // MARK: Menu validation
 
     override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        if item.action == #selector(paste(_:)) || item.action == #selector(pasteAsPlainText(_:))
+            || item.action == #selector(pasteAsRichText(_:)) {
+            return isEditable && (NSPasteboard.general.types?.contains(.string) ?? false)
+        }
         let b = currentBlock
         if let mi = item as? NSMenuItem {
             switch item.action {

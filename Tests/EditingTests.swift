@@ -438,3 +438,15 @@ final class CopyTests: XCTestCase {
         pb.releaseGlobally()
     }
 }
+
+final class MenuValidationTests: XCTestCase {
+    func testPasteCommandsAreEnabledWhenClipboardHasText() {
+        let (_, tv) = makeEditor("x\n")
+        let pb = NSPasteboard.general
+        guard pb.types?.contains(.string) ?? false else { return } // never touch the user's clipboard
+        for sel in [#selector(NSText.paste(_:)), #selector(NSTextView.pasteAsPlainText(_:))] {
+            let item = NSMenuItem(title: "", action: sel, keyEquivalent: "")
+            XCTAssertTrue(tv.validateUserInterfaceItem(item), "\(sel)")
+        }
+    }
+}
