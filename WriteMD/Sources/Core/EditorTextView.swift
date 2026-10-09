@@ -66,7 +66,7 @@ final class EditorTextView: NSTextView {
     // MARK: Plain, predictable input
 
     override var readablePasteboardTypes: [NSPasteboard.PasteboardType] { [.string] }
-    override var writablePasteboardTypes: [NSPasteboard.PasteboardType] { [.rtf, .string] }
+    // (default writablePasteboardTypes)
 
     override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
         guard let s = pboard.string(forType: .string) else { return false }

@@ -69,6 +69,7 @@ final class DocumentWindowController: NSWindowController, NSToolbarDelegate, NST
 
         NotificationCenter.default.addObserver(self, selector: #selector(selectionChanged),
                                                name: NSTextView.didChangeSelectionNotification, object: textView)
+        window.initialFirstResponder = textView
         window.makeFirstResponder(textView)
 
         sourceView.isEditable = false
@@ -90,6 +91,12 @@ final class DocumentWindowController: NSWindowController, NSToolbarDelegate, NST
         NotificationCenter.default.addObserver(self, selector: #selector(contentChanged),
                                                name: NSTextStorage.didProcessEditingNotification, object: model.storage)
         if UserDefaults.standard.bool(forKey: Self.showSourceKey) { setSourceVisible(true) }
+    }
+
+    override func showWindow(_ sender: Any?) {
+        super.showWindow(sender)
+        // The editor must have keyboard focus from the start, or Edit-menu items stay disabled.
+        window?.makeFirstResponder(textView)
     }
 
     // MARK: Raw Markdown side view (read-only, only does work while visible)

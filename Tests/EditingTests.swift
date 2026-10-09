@@ -425,3 +425,16 @@ final class TabHangTests: XCTestCase {
         XCTAssertTrue(m.markdown().hasPrefix("1.\twrapped"))
     }
 }
+
+final class CopyTests: XCTestCase {
+    func testWriteSelectionPutsTextOnPasteboard() {
+        let (_, tv) = makeEditor("alpha **beta**\n\n1. one\n")
+        tv.selectAll(nil)
+        let pb = NSPasteboard(name: NSPasteboard.Name("com.musikutiv.writemd.test"))
+        pb.clearContents()
+        XCTAssertTrue(tv.writeSelection(to: pb, types: tv.writablePasteboardTypes))
+        XCTAssertNotNil(pb.string(forType: .string))
+        XCTAssertTrue(pb.types?.contains(.rtf) ?? false)
+        pb.releaseGlobally()
+    }
+}
