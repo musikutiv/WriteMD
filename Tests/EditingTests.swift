@@ -56,8 +56,8 @@ final class EditingTests: XCTestCase {
         let last = tv.block(atParagraphStartOf: tv.string.count - 1)!
         XCTAssertEqual(last.kind, .paragraph)
         let style = tv.textStorage!.attribute(.paragraphStyle, at: tv.string.count - 1, effectiveRange: nil) as! NSParagraphStyle
-        XCTAssertEqual(style.headIndent, 0)
-        XCTAssertEqual(style.firstLineHeadIndent, 0)
+        XCTAssertEqual(style.firstLineHeadIndent, 0) // only wrapped lines align with the text
+        XCTAssertTrue(style.tabStops.isEmpty)
     }
 
     func testNumberedListCommandNumbersOnceAndNothingRenumbersLater() {
@@ -381,5 +381,22 @@ final class EditingTests: XCTestCase {
         tv.caret(after: "bo"); tv.type("x")
         let b = st.attribute(.font, at: st.length - 1, effectiveRange: nil) as! NSFont
         XCTAssertEqual(b.pointSize, Styler.bodySize)
+    }
+}
+
+final class ManualHangingIndentTests: XCTestCase {
+    func testTypedNumberingGetsHangingIndentWithoutBecomingAList() {
+        let (m, tv) = makeEditor("")
+        tv.type("1.  " + String(repeating: "wrapped words here ", count: 12))
+        let st = tv.textStorage!
+        let style = st.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as! NSParagraphStyle
+        XCTAssertEqual(style.firstLineHeadIndent, 0)
+        XCTAssertGreaterThan(style.headIndent, 10)
+        XCTAssertEqual(tv.block(atParagraphStartOf: 0)?.kind, .paragraph)
+        XCTAssertTrue(m.markdown().hasPrefix("1.  wrapped"))
+        // plain text gets none
+        tv.insertNewline(nil); tv.type("no marker here")
+        let last = st.attribute(.paragraphStyle, at: st.length - 1, effectiveRange: nil) as! NSParagraphStyle
+        XCTAssertEqual(last.headIndent, 0)
     }
 }

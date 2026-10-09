@@ -62,6 +62,25 @@ enum Styler {
         return max(26, ceil(w) + 8)
     }
 
+    /// Width of a manually typed list prefix ("12.  ", "- ") at the start of a paragraph, or 0.
+    static func manualPrefixWidth(_ ns: NSString, _ pr: NSRange) -> CGFloat {
+        var i = pr.location
+        let end = pr.location + pr.length
+        func ch(_ k: Int) -> unichar { ns.character(at: k) }
+        if i < end, [45, 42, 43].contains(ch(i)) { i += 1 }
+        else {
+            let d = i
+            while i < end, ch(i) >= 48, ch(i) <= 57 { i += 1 }
+            guard i > d, i - d <= 9, i < end, ch(i) == 46 || ch(i) == 41 else { return 0 }
+            i += 1
+        }
+        let m = i
+        while i < end, ch(i) == 32 { i += 1 }
+        guard i > m, i < end else { return 0 }
+        let w = ns.substring(with: NSRange(location: pr.location, length: i - pr.location))
+        return ceil((w as NSString).size(withAttributes: [.font: font(kind: .paragraph, flags: [])]).width)
+    }
+
     static func indentWidth(_ indent: String) -> CGFloat {
         var cols = 0
         for ch in indent { cols += ch == "\t" ? 4 : 1 }
@@ -77,7 +96,9 @@ enum Styler {
         p.lineHeightMultiple = 1.2
         p.paragraphSpacingBefore = 8
         switch block.kind {
-        case .paragraph: break
+        case .paragraph:
+            // Visual only: a typed "1. " / "- " prefix makes wrapped lines align with the text.
+            if hang > 0 { p.headIndent = hang }
         case .heading(let n):
             p.paragraphSpacingBefore = n <= 2 ? 22 : 16
             p.lineHeightMultiple = 1.1
@@ -155,8 +176,9 @@ enum Styler {
                 if t.location != NSNotFound { prefix = ns.substring(with: NSRange(location: pr.location, length: t.location - pr.location)) }
             }
             storage.addAttribute(.wmdBlock, value: block, range: pr)
+            let h = block.kind == .paragraph ? manualPrefixWidth(ns, pr) : hang(forPrefix: prefix)
             storage.addAttribute(.paragraphStyle,
-                                 value: paragraphStyle(for: block, continuing: continuing, hang: hang(forPrefix: prefix)),
+                                 value: paragraphStyle(for: block, continuing: continuing, hang: h),
                                  range: pr)
             let kind = block.kind
             storage.enumerateAttribute(.wmdFlags, in: pr, options: []) { v, run, _ in
