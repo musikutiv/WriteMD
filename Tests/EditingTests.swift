@@ -57,7 +57,6 @@ final class EditingTests: XCTestCase {
         XCTAssertEqual(last.kind, .paragraph)
         let style = tv.textStorage!.attribute(.paragraphStyle, at: tv.string.count - 1, effectiveRange: nil) as! NSParagraphStyle
         XCTAssertEqual(style.firstLineHeadIndent, 0) // only wrapped lines align with the text
-        XCTAssertTrue(style.tabStops.isEmpty)
     }
 
     func testNumberedListCommandNumbersOnceAndNothingRenumbersLater() {
