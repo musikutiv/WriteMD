@@ -22,12 +22,15 @@ targets:
     platform: macOS
     sources:
       - path: WriteMD/Sources
+      - path: WriteMD/Resources
+        buildPhase: resources
     info:
       path: WriteMD/Info.plist
       properties:
         LSApplicationCategoryType: public.app-category.productivity
         NSHumanReadableCopyright: "Copyright © 2026 musikutiv."
         NSPrincipalClass: NSApplication
+        CFBundleIconFile: AppIcon
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleDocumentTypes:

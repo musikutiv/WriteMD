@@ -15,4 +15,5 @@ fi
 
 CONFIG="${1:-Release}"
 xcodebuild -project WriteMD.xcodeproj -scheme WriteMD -configuration "$CONFIG" -derivedDataPath build build
+touch "build/Build/Products/$CONFIG/WriteMD.app"   # Finder shows the bundle folder date
 echo "==> $ROOT/build/Build/Products/$CONFIG/WriteMD.app"
